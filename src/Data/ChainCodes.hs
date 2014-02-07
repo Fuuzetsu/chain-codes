@@ -16,12 +16,14 @@ import Control.Monad
 import Data.Word
 import Data.Map hiding (map)
 
+-- | Friendly alias for 'PixelRGB8'
 type Colour = PixelRGB8
 
 -- | Position of a pixel along with the clock
 -- direction used by 'chainCode'.
 type PixelPos = (Int, Int, Int)
 
+-- | Simple alias for 'Int' pair
 type Position = (Int, Int)
 
 
