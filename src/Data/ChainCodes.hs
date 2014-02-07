@@ -14,10 +14,16 @@ import Codec.Picture.Types
 import Data.Function
 import Control.Monad
 import Data.Word
+import Data.Map hiding (map)
 
-type BlobPixel = (Int, Int, Int)
 type Colour = PixelRGB8
-type PixelPos = (Int, Int)
+
+-- | Position of a pixel along with the clock
+-- direction used by 'chainCode'.
+type PixelPos = (Int, Int, Int)
+
+type Position = (Int, Int)
+
 
 -- | Reads in an 'Image' that uses 'PixelRGB8' as its base.
 -- Rejects any other format.
