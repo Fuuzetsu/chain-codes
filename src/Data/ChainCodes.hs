@@ -51,14 +51,62 @@ onImage f d = case d of
 -- fully before progressing a column: we check @(width, height + 1)@ then
 -- @(width, height + 1)@ and so on where top left corner of the image is (0, 0)
 -- and positive height is towards the bottom.
-findSpot ∷ Image PixelRGB8 → Colour → Maybe PixelPos
+findSpot ∷ Image PixelRGB8 → Colour → Maybe Position
 findSpot img@(Image w h d) c
   | w <= 0 || h <= 0 = Nothing
   | otherwise =
       go [ (wi, hi) | wi ← [0 .. w - 1], hi ← [0 .. h - 1] ]
       where
-        go ∷ [PixelPos] → Maybe PixelPos
+        go ∷ [(Int, Int)] → Maybe Position
         go []     = Nothing
         go (x:xs) = if uncurry (pixelAt img) x == c
                     then Just x
                     else go xs
+
+-- | Given an 'Image' parametrised by 'PixelRGB8' and given a
+-- 'Colour', we try to find the chain code in the binary image which has
+-- the passed in colour.
+--
+-- Note that only a single shape is accepted inside of the image. The
+-- starting positing is determined using 'findSpot'.
+--
+-- The output list contains unique positions only: the beginning and
+-- end position are not treated the same. If 'findSpot' fails, we return
+-- 'Nothing'.
+chainCode ∷ Image PixelRGB8 → Colour → Maybe [Position]
+chainCode img@(Image w h d) c = findSpot img c >>= \pos →
+  let ppos = (fst pos, snd pos, 0)
+  in Just $ go [0 ..] (fromList [(0, ppos)]) ppos
+  where
+    ns ∷ Map Int (Int, Int)
+    ns = fromList $ zip [0 ..]
+           [ (0, 1), (1, 1), (1, 0), (1, -1)
+           , (0, -1), (-1, -1), (-1, 0), (-1, 1)]
+
+    go ∷ [Int] → Map Int PixelPos → PixelPos → [Position]
+    go (count:counts) positions p@(sx, sy, _) =
+      map (dropThird . snd) . toList $ loop (count:counts) positions
+      where
+        dropThird ∷ (a, b, c) → (a, b)
+        dropThird (x, y, _) = (x, y)
+
+        loop ∷ [Int] → Map Int PixelPos → Map Int PixelPos
+        loop (count:counts) positions
+          | count == 0 || not (eqV positions count) =
+              let current@(fx, fy, fd) = positions ! count
+                  inBounds (x, y) = x >= 0 && y >= 0 && x < w && y < h
+                  places = [ (mx, my, m)  | i ← [5 + fd .. fd + 13]
+                                          , let m = i `mod` 8
+                                                (nx, ny) = ns ! m
+                                                o@(mx, my) = (fx + nx, fy + ny)
+                                          , inBounds o
+                                          , uncurry (pixelAt img) o == c
+                                          ]
+              in loop counts $ case places of
+                [] → positions
+                x:_ → insert (count + 1) x positions
+          | otherwise = delete 0 positions
+
+        eqV ∷ Map Int PixelPos → Int → Bool
+        eqV p i = let (x, y, _) = p ! i
+                  in (x, y) == (sx, sy)
