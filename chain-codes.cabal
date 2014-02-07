@@ -13,6 +13,6 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Data.ChainCodes
-  build-depends:       base >=4.6 && <4.7, JuicyPixels, containers
+  build-depends:       base >=4.6 && <5, JuicyPixels, containers
   hs-source-dirs:      src
   default-language:    Haskell2010
