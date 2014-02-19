@@ -56,7 +56,7 @@ onImage f d = case d of
 -- 'Colour', we try to find the first pixel that matches the 'Colour'.
 --
 -- We start checking at the top left corner of the image, checking each row
--- fully before progressing a column: we check @(width, height + 1)@ then
+-- fully before progressing a column: we check @(width, height)@ then
 -- @(width, height + 1)@ and so on where top left corner of the image is (0, 0)
 -- and positive height is towards the bottom.
 findSpot ∷ Image PixelRGB8 → Colour → Maybe Position
@@ -73,7 +73,9 @@ findSpot img@(Image w h d) c
 
 -- | Given an 'Image' parametrised by 'PixelRGB8' and given a
 -- 'Colour', we try to find the chain code in the binary image which has
--- the passed in colour.
+-- the passed in colour. Note that this is the colour of your shape and any
+-- other colour is assumed to be the background: to process a black shape, pass
+-- in a black colour.
 --
 -- Note that only a single shape is accepted inside of the image. The
 -- starting positing is determined using 'findSpot'.
