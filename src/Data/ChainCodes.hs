@@ -26,6 +26,9 @@ type PixelPos = (Int, Int, Int)
 -- | Simple alias for 'Int' pair
 type Position = (Int, Int)
 
+-- | In a chain code, we'll keep the original pixel positions as well as
+-- the direction which we can use for signal processing.
+type ChainCode = [PixelPos]
 
 -- | Reads in an 'Image' that uses 'PixelRGB8' as its base.
 -- Rejects any other format.
@@ -34,23 +37,6 @@ readRGB8 = readImage >=> return . \case
   Right (ImageRGB8 i) → Right i
   Right _ → Left "Unsuported image format. RGB8 images only please."
   Left err → Left err
-
--- | Generic application over 'DynamicImage'.
-onImage ∷ (∀ a. Image a → b) → DynamicImage → b
-onImage f d = case d of
-  ImageY8 img -> f img
-  ImageY16 img -> f img
-  ImageYF img -> f img
-  ImageYA8 img -> f img
-  ImageYA16 img -> f img
-  ImageRGB8 img -> f img
-  ImageRGB16 img -> f img
-  ImageRGBF img -> f img
-  ImageRGBA8 img -> f img
-  ImageRGBA16 img -> f img
-  ImageYCbCr8 img -> f img
-  ImageCMYK8 img -> f img
-  ImageCMYK16 img -> f img
 
 -- | Given an 'Image' parametrised by 'PixelRGB8' and given a
 -- 'Colour', we try to find the first pixel that matches the 'Colour'.
@@ -83,7 +69,7 @@ findSpot img@(Image w h d) c
 -- The output list contains unique positions only: the beginning and
 -- end position are not treated the same. If 'findSpot' fails, we return
 -- 'Nothing'.
-chainCode ∷ Image PixelRGB8 → Colour → Maybe [Position]
+chainCode ∷ Image PixelRGB8 → Colour → Maybe ChainCode
 chainCode img@(Image w h d) c = findSpot img c >>= \pos →
   let ppos = (fst pos, snd pos, 0)
   in Just $ go [0 ..] (fromList [(0, ppos)]) ppos
@@ -93,13 +79,10 @@ chainCode img@(Image w h d) c = findSpot img c >>= \pos →
            [ (0, 1), (1, 1), (1, 0), (1, -1)
            , (0, -1), (-1, -1), (-1, 0), (-1, 1)]
 
-    go ∷ [Int] → Map Int PixelPos → PixelPos → [Position]
+    go ∷ [Int] → Map Int PixelPos → PixelPos → ChainCode
     go (count:counts) positions p@(sx, sy, _) =
-      map (dropThird . snd) . toList $ loop (count:counts) positions
+      map snd . toList $ loop (count:counts) positions
       where
-        dropThird ∷ (a, b, c) → (a, b)
-        dropThird (x, y, _) = (x, y)
-
         loop ∷ [Int] → Map Int PixelPos → Map Int PixelPos
         loop (count:counts) positions
           | count == 0 || not (eqV positions count) =
